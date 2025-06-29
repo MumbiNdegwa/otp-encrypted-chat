@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Remote Communication - AES Encryption</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            animation: slideUp 0.8s ease-out;
+        }
+
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            gap: 20px;
+        }
+
+
+        .mode-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+
+        .mode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+
+        .mode-btn.active {
+            background: linear-gradient(45deg, #764ba2, #667eea);
+            transform: scale(1.05);
+        }
+
+
+        .section {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+
+        .section.active {
+            display: block;
+        }
+
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 1em;
+        }
+
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+
+        .result {
+            margin-top: 25px;
+            padding: 20px;
+            background: linear-gradient(45deg, #f8f9ff, #e8f2ff);
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            word-break: break-all;
+            display: none;
+        }
+
+
+        .result.show {
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+
+        .result h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+
+        .result p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+
+        .copy-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+
+        .status {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            display: none;
+        }
+
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+
+        .status.info {
+            background: #cce7ff;
+            color: #004085;
+            border: 1px solid #b3d7ff;
+            display: block;
+        }
+
+
+        .phone-input {
+            position: relative;
+        }
+
+
+        .phone-prefix {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            font-weight: 600;
+            z-index: 1;
+        }
+
+
+        .phone-input input {
+            padding-left: 70px;
+        }
+
+
+        .key-display {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+
+        .key-display h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+
+        .key-display code {
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            color: #333;
+            letter-spacing: 2px;
+        }
+
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+           
+            .header h1 {
+                font-size: 2em;
+            }
+           
+            .mode-selector {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1> Secure Communication 🔐</h1>
+            <p>AES Encryption with SMS OTP Verification</p>
+        </div>
+
+
+        <div class="mode-selector">
+            <button class="mode-btn active" onclick="switchMode('sender')">📤 Sender Mode</button>
+            <button class="mode-btn" onclick="switchMode('receiver')">📥 Receiver Mode</button>
+        </div>
+
+
+        <!-- Sender Section -->
+        <div id="sender-section" class="section active">
+            <h2 style="text-align: center; margin-bottom: 30px; color: #333;">Encrypt & Send Message</h2>
+           
+            <div class="form-group">
+                <label for="message">Message to Encrypt:</label>
+                <textarea id="message" placeholder="Enter your secret message here..." required></textarea>
+            </div>
+
+
+            <div class="form-group phone-input">
+                <label for="phone">Receiver's Phone Number:</label>
+                <span class="phone-prefix">+254</span>
+                <input type="tel" id="phone" placeholder="7XXXXXXXX" pattern="[0-9]{9}" required>
+            </div>
+
+
+            <button class="btn" onclick="encryptAndSend()">🔒 Encrypt Message & Send OTP</button>
+
+
+            <div id="encrypt-result" class="result">
+                <h3>✅ Encryption Successful!</h3>
+                <p><strong>Encrypted Message:</strong></p>
+                <p id="encrypted-text" style="font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 5px;"></p>
+                <button class="copy-btn" onclick="copyEncrypted()">📋 Copy Encrypted Message</button>
+               
+                <div class="key-display">
+                    <h4>🔑 OTP Status</h4>
+                    <p style="color: #856404; margin: 0;">OTP has been sent to the recipient's phone via SMS</p>
+                </div>
+            </div>
+
+
+            <div id="sender-status" class="status"></div>
+        </div>
+
+
+        <!-- Receiver Section -->
+        <div id="receiver-section" class="section">
+            <h2 style="text-align: center; margin-bottom: 30px; color: #333;">Decrypt Received Message</h2>
+           
+            <div class="form-group">
+                <label for="encrypted-message">Encrypted Message:</label>
+                <textarea id="encrypted-message" placeholder="Paste the encrypted message here..." required></textarea>
+            </div>
+
+
+            <div class="form-group">
+                <label for="otp-key">OTP Key (from SMS):</label>
+                <input type="text" id="otp-key" placeholder="Enter the 6-digit OTP from SMS" maxlength="6" required>
+            </div>
+
+
+            <button class="btn" onclick="decryptMessage()">🔓 Decrypt Message</button>
+
+
+            <div id="decrypt-result" class="result">
+                <h3>✅ Decryption Successful!</h3>
+                <p><strong>Original Message:</strong></p>
+                <p id="decrypted-text" style="font-size: 1.2em; color: #28a745; font-weight: 600; background: #f8f9fa; padding: 15px; border-radius: 5px;"></p>
+            </div>
+
+
+            <div id="receiver-status" class="status"></div>
+        </div>
+    </div>
+
+
+    <script>
+        // Global variables
+        let currentKey = '';
+        let currentMode = 'sender';
+
+
+        // Mode switching
+        function switchMode(mode) {
+            currentMode = mode;
+           
+            // Update button states
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+           
+            // Show/hide sections
+            document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+            document.getElementById(mode + '-section').classList.add('active');
+           
+            // Clear previous results
+            clearResults();
+        }
+
+
+        // Generate a secure 6-digit OTP
+        function generateOTP() {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+
+        // AES Encryption function
+        function encryptMessage(message, key) {
+            try {
+                const encrypted = CryptoJS.AES.encrypt(message, key).toString();
+                return encrypted;
+            } catch (error) {
+                throw new Error('Encryption failed: ' + error.message);
+            }
+        }
+
+
+        // AES Decryption function
+        function decryptMessage_AES(encryptedMessage, key) {
+            try {
+                const bytes = CryptoJS.AES.decrypt(encryptedMessage, key);
+                const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+                if (!decrypted) {
+                    throw new Error('Invalid key or corrupted message');
+                }
+                return decrypted;
+            } catch (error) {
+                throw new Error('Decryption failed: ' + error.message);
+            }
+        }
+
+
+        // Phone number validation
+        function validatePhoneNumber(phone) {
+            const phoneRegex = /^[0-9]{9}$/;
+            return phoneRegex.test(phone);
+        }
+
+
+        // Send SMS via Africa's Talking API
+        async function sendSMS(phoneNumber, otp) {
+            showStatus('sender-status', 'info', '📱 Sending OTP via SMS...');
+           
+            try {
+                const response = await fetch('http://localhost:5000/send-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        phone_number: phoneNumber,
+                        otp: otp
+                    })
+                });
+               
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+               
+                const data = await response.json();
+               
+                if (data.status === 'success') {
+                    showStatus('sender-status', 'success',
+                        `✅ OTP sent successfully to +254${phoneNumber}! Check your SMS.`);
+                    return true;
+                } else {
+                    throw new Error(data.message || 'Failed to send SMS');
+                }
+            } catch (error) {
+                showStatus('sender-status', 'error',
+                    `❌ Failed to send SMS: ${error.message}. Please ensure backend server is running.`);
+                throw error;
+            }
+        }
+
+
+        // Main encryption and sending function
+        async function encryptAndSend() {
+            const message = document.getElementById('message').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+           
+            // Validation
+            if (!message) {
+                showStatus('sender-status', 'error', '❌ Please enter a message to encrypt.');
+                return;
+            }
+           
+            if (!validatePhoneNumber(phone)) {
+                showStatus('sender-status', 'error', '❌ Please enter a valid 9-digit phone number (without +254).');
+                return;
+            }
+           
+            try {
+                // Clear previous results
+                document.getElementById('encrypt-result').classList.remove('show');
+               
+                // Generate OTP
+                currentKey = generateOTP();
+               
+                // Encrypt message
+                const encryptedMessage = encryptMessage(message, currentKey);
+               
+                // Send SMS
+                await sendSMS(phone, currentKey);
+               
+                // Display results
+                document.getElementById('encrypted-text').textContent = encryptedMessage;
+                document.getElementById('encrypt-result').classList.add('show');
+               
+            } catch (error) {
+                showStatus('sender-status', 'error', '❌ ' + error.message);
+            }
+        }
+
+
+        // Main decryption function
+        function decryptMessage() {
+            const encryptedMessage = document.getElementById('encrypted-message').value.trim();
+            const otpKey = document.getElementById('otp-key').value.trim();
+           
+            // Validation
+            if (!encryptedMessage) {
+                showStatus('receiver-status', 'error', '❌ Please enter the encrypted message.');
+                return;
+            }
+           
+            if (!otpKey || otpKey.length !== 6) {
+                showStatus('receiver-status', 'error', '❌ Please enter a valid 6-digit OTP.');
+                return;
+            }
+           
+            try {
+                // Clear previous results
+                document.getElementById('decrypt-result').classList.remove('show');
+               
+                // Decrypt message
+                const decryptedMessage = decryptMessage_AES(encryptedMessage, otpKey);
+               
+                // Display result
+                document.getElementById('decrypted-text').textContent = decryptedMessage;
+                document.getElementById('decrypt-result').classList.add('show');
+               
+                showStatus('receiver-status', 'success', '✅ Message decrypted successfully!');
+               
+            } catch (error) {
+                showStatus('receiver-status', 'error', '❌ ' + error.message);
+            }
+        }
+
+
+        // Copy encrypted message to clipboard
+        function copyEncrypted() {
+            const encryptedText = document.getElementById('encrypted-text').textContent;
+            navigator.clipboard.writeText(encryptedText).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                btn.style.background = '#28a745';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#28a745';
+                }, 2000);
+            }).catch(() => {
+                alert('Failed to copy to clipboard. Please copy manually.');
+            });
+        }
+
+
+        // Show status messages
+        function showStatus(elementId, type, message) {
+            const statusElement = document.getElementById(elementId);
+            statusElement.className = `status ${type}`;
+            statusElement.textContent = message;
+           
+            // Auto-hide after 5 seconds for info messages
+            if (type === 'info') {
+                setTimeout(() => {
+                    statusElement.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+
+        // Clear all results and status messages
+        function clearResults() {
+            document.querySelectorAll('.result').forEach(result => result.classList.remove('show'));
+            document.querySelectorAll('.status').forEach(status => status.style.display = 'none');
+        }
+
+
+        // Auto-format phone number input
+        document.getElementById('phone').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 9) {
+                value = value.substring(0, 9);
+            }
+            e.target.value = value;
+        });
+
+
+        // Auto-format OTP input
+        document.getElementById('otp-key').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 6) {
+                value = value.substring(0, 6);
+            }
+            e.target.value = value;
+        });
+
+
+        // Enter key handling
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                if (currentMode === 'sender') {
+                    encryptAndSend();
+                } else {
+                    decryptMessage();
+                }
+            }
+        });
+
+
+        // Initialize
+        console.log('🔐 Secure Communication System Initialized');
+        console.log('Frontend ready - Backend integration required for SMS functionality');
+    </script>
+</body>
+</html>
